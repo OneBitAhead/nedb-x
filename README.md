@@ -16,13 +16,8 @@ The following things are added:
 * [ ] <a href="#tree-data">Tree data (with open/closed nodes) .. work in progress ..</a>
 
 
-**Embedded persistent or in memory database for Node.js, nw.js, Electron and browsers, 100% JavaScript, no binary dependency**. API is a subset of MongoDB's and it's <a href="#speed">plenty fast</a>.
-
-**IMPORTANT NOTE**: Please don't submit issues for questions regarding your code. Only actual bugs or feature requests will be answered, all others will be closed without comment. Also, please follow the <a href="#bug-reporting-guidelines">bug reporting guidelines</a> and check the <a href="https://github.com/louischatriot/nedb/wiki/Change-log" target="_blank">change log</a> before submitting an already fixed bug :)
-
-
 ## Installation, tests
-Module name on npm and bower is `nedb`.
+Module name on npm and bower is `nedb-x`.
 
 ```
 npm install nedb-x --save    # Put latest version in your package.json
@@ -664,12 +659,12 @@ The `groupBy(attribute)` can be added after a `find` method (which returns a Cur
 On the one hand you need to group by an attribute on the other hand you need to define some aggregates. The `aggregates(object)` method receives a json object with all the aggregates to build. An aggregates is build like this: {`<aggregate-name>`:[`<method>`, `<attribute-to-aggregate>`] }
 
 The following methods are supported: 
-* sum: Build a sum for each group
-* min: Take the minimum of each group 
-* max: Take the maximum of each group
-* avg: Build the average of each group
-* median: Build the median of each group
-* count: Count the members of each group
+* **sum**: Build a sum for each group
+* **min**: Take the minimum of each group 
+* **max**: Take the maximum of each group
+* **avg**: Build the average of each group
+* **median**: Build the median of each group
+* **count**: Count the members of each group
 
 E.g. so if you want to count all members of a group you define this:
 ```javascript
@@ -985,55 +980,6 @@ var data = await db.model("Product")
 ## Tree data
 
 ...in progress...
-
-
-
-
-## Performance
-### Speed
-NeDB is not intended to be a replacement of large-scale databases such as MongoDB, and as such was not designed for speed. That said, it is still pretty fast on the expected datasets, especially if you use indexing. On a typical, not-so-fast dev machine, for a collection containing 10,000 documents, with indexing:  
-* Insert: **10,680 ops/s**
-* Find: **43,290 ops/s**
-* Update: **8,000 ops/s**
-* Remove: **11,750 ops/s**  
-
-You can run these simple benchmarks by executing the scripts in the `benchmarks` folder. Run them with the `--help` flag to see how they work.
-
-### Memory footprint
-A copy of the whole database is kept in memory. This is not much on the
-expected kind of datasets (20MB for 10,000 2KB documents).
-
-## Use in other services
-* <a href="https://github.com/louischatriot/connect-nedb-session"
-  target="_blank">connect-nedb-session</a> is a session store for
-Connect and Express, backed by nedb
-* If you mostly use NeDB for logging purposes and don't want the memory footprint of your application to grow too large, you can use <a href="https://github.com/louischatriot/nedb-logger" target="_blank">NeDB Logger</a> to insert documents in a NeDB-readable database
-* If you've outgrown NeDB, switching to MongoDB won't be too hard as it is the same API. Use <a href="https://github.com/louischatriot/nedb-to-mongodb" target="_blank">this utility</a> to transfer the data from a NeDB database to a MongoDB collection
-* An ODM for NeDB: <a href="https://github.com/scottwrobinson/camo" target="_blank">Camo</a>
-
-## Pull requests
-**Important: I consider NeDB to be feature-complete, i.e. it does everything I think it should and nothing more. As a general rule I will not accept pull requests anymore, except for bugfixes (of course) or if I get convinced I overlook a strong usecase. Please make sure to open an issue before spending time on any PR.**
-
-If you submit a pull request, thanks! There are a couple rules to follow though to make it manageable:
-* The pull request should be atomic, i.e. contain only one feature. If it contains more, please submit multiple pull requests. Reviewing massive, 1000 loc+ pull requests is extremely hard.
-* Likewise, if for one unique feature the pull request grows too large (more than 200 loc tests not included), please get in touch first.
-* Please stick to the current coding style. It's important that the code uses a coherent style for readability.
-* Do not include sylistic improvements ("housekeeping"). If you think one part deserves lots of housekeeping, use a separate pull request so as not to pollute the code.
-* Don't forget tests for your new feature. Also don't forget to run the whole test suite before submitting to make sure you didn't introduce regressions.
-* Do not build the browser version in your branch, I'll take care of it once the code is merged.
-* Update the readme accordingly.
-* Last but not least: keep in mind what NeDB's mindset is! The goal is not to be a replacement for MongoDB, but to have a pure JS database, easy to use, cross platform, fast and expressive enough for the target projects (small and self contained apps on server/desktop/browser/mobile). Sometimes it's better to shoot for simplicity than for API completeness with regards to MongoDB.
-
-## Bug reporting guidelines
-If you report a bug, thank you! That said for the process to be manageable please strictly adhere to the following guidelines. I'll not be able to handle bug reports that don't:
-* Your bug report should be a self-containing gist complete with a package.json for any dependencies you need. I need to run through a simple `git clone gist; npm install; node bugreport.js`, nothing more.
-* It should use assertions to showcase the expected vs actual behavior and be hysteresis-proof. It's quite simple in fact, see this example: https://gist.github.com/louischatriot/220cf6bd29c7de06a486
-* Simplify as much as you can. Strip all your application-specific code. Most of the time you will see that there is no bug but an error in your code :)
-* 50 lines max. If you need more, read the above point and rework your bug report. If you're **really** convinced you need more, please explain precisely in the issue.
-* The code should be Javascript, not Coffeescript.
-
-### Bitcoins
-You don't have time? You can support NeDB by sending bitcoins to this address: 1dDZLnWpBbodPiN8sizzYrgaz5iahFyb1
 
 
 ## License 
