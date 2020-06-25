@@ -1,0 +1,43 @@
+{
+  "name": "nedb-x",
+  "version": "0.7.0",
+  "author": "Gunnar Thies <gthies@onebitahead.com>",
+  "description": "Functional extensions to 'NeDB' from Loius Chatriot",
+  "keywords": [
+    "database",
+    "datastore",
+    "embedded"
+  ],
+  "homepage": "https://github.com/OneBitAhead/nedb-x",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/OneBitAhead/nedb-x.git"
+  },
+  "dependencies": {
+    "async": "0.2.10",
+    "binary-search-tree": "0.2.5",
+    "localforage": "^1.3.0",
+    "mkdirp": "~0.5.1",
+    "underscore": "~1.4.4"
+  },
+  "devDependencies": {
+    "chai": "^3.2.0",
+    "mocha": "1.4.x"
+  },
+  "scripts": {
+    "test": "mocha test"
+  },
+  "main": "index",
+  "browser": {
+    "./lib/customUtils.js": "./browser-version/browser-specific/lib/customUtils.js",
+    "./lib/storage.js": "./browser-version/browser-specific/lib/storage.js"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/OneBitAhead/nedb-x/issues"
+  },
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  }
+}

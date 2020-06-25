@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "async": "3.2.0",
+    "fs-extra": "9.0.1",
+    "uglify-es": "3.3.9",
+    "browserify": "16.5.1"
+  }
+}
