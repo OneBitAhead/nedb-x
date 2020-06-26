@@ -24,6 +24,9 @@ Module name on npm and bower is `nedb-x`.
 npm install nedb-x --save    # Put latest version in your package.json
 ```
 
+For browser-usage: just download the <a href="https://raw.githubusercontent.com/OneBitAhead/nedb-x/master/browser-version/out/nedb.min.js">nedbx.min.js</a>
+
+
 ## API
 It is a subset of MongoDB's API (the most used operations). Here the functionality of the base nedb (as promise version) is described.
 
