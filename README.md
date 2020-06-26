@@ -13,8 +13,9 @@ The following things are added:
 * [X] <a href="#group-by-statements">Group by with aggregates</a> 
 * [X] <a href="#model-attribute">Substructure database with model attribute</a> 
 * [X] <a href="#left-join">Joining (left join) model data</a>
-* [ ] <a href="#tree-data">Tree data (with open/closed nodes) .. work in progress ..</a>
-
+* [ ] WIP <a href="#tree-data">Tree data (with open/closed nodes)</a>
+* [ ] WIP: Categorize (build categories and act as tree over the categories)
+* [ ] WIP: Search
 
 ## Installation, tests
 Module name on npm and bower is `nedb-x`.
