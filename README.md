@@ -24,7 +24,7 @@ Module name on npm and bower is `nedb-x`.
 npm install nedb-x --save    # Put latest version in your package.json
 ```
 
-For browser-usage: just download the <a href="https://raw.githubusercontent.com/OneBitAhead/nedb-x/master/browser-version/out/nedb.min.js">nedbx.min.js</a>
+For browser-usage: just download the <a href="https://raw.githubusercontent.com/OneBitAhead/nedb-x/master/browser-version/out/nedb-x.min.js">nedb-x.min.js</a>
 
 
 ## API
@@ -632,7 +632,7 @@ await db.ensureIndex({ fieldName: 'expirationDate', expireAfterSeconds: 0 }
 The browser version and its minified counterpart are in the `browser-version/out` directory. You only need to require `nedb.js` or `nedb.min.js` in your HTML file and the global object `Nedb` can be used right away, with the same API as the server version:
 
 ```
-<script src="nedb.min.js"></script>
+<script src="nedb-x.min.js"></script>
 <script>
   var db = new Nedb();   // Create an in-memory only datastore
 
