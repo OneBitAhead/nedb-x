@@ -15,7 +15,7 @@ The following things are added:
 * [X] <a href="#left-join">Joining (left join) model data</a>
 * [ ] WIP <a href="#tree-data">Tree data (with open/closed nodes)</a>
 * [ ] WIP: Categorize (build categories and act as tree over the categories)
-* [ ] WIP: Search
+* [ ] WIP: Search (Todo)
 
 ## Installation, tests
 Module name on npm and bower is `nedb-x`.
