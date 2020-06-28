@@ -967,7 +967,6 @@ var data = await db.model("Product")
 //   { 'Product:name': 'Water','Product:price': 0.15, 'Category:name': 'Drink'}
 // ]
 
-
 // And just for the fun of it: combine the left join with the group by and sum up the prices
 var data = await db.model("Product")
     .find({"Category:name":"Drink"},{"_id": 0, "sum": 1, "Product:name":1, "Product:price":1, "Category:name":1})
