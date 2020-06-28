@@ -1,5 +1,5 @@
 
-## nedb-x: Functional extension to NeDB "The JavaScript Database"
+## nedb-x: Functional extension for NeDB "The JavaScript Database"
 
 **Disclaimer**
 

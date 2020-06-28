@@ -2,20 +2,13 @@
   "name": "nedb-x",
   "version": "0.7.0",
   "author": "Gunnar Thies <gthies@onebitahead.com>",
-  "description": "Functional extensions to 'NeDB' from Loius Chatriot",
+  "description": "Functional extensions for 'NeDB' from Loius Chatriot",
   "keywords": [
     "database",
     "datastore",
     "embedded"
   ],
   "homepage": "https://github.com/OneBitAhead/nedb-x",
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/OneBitAhead/nedb-x.git"
-  },
-  "publishConfig": { 
-    "registry": "https://npm.pkg.github.com/"
-  },
   "dependencies": {
     "async": "0.2.10",
     "binary-search-tree": "0.2.5",

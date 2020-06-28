@@ -74,7 +74,7 @@ child_process.exec('npm install', { cwd: __dirname }, function (err, stdout, std
     b.add(srcPath);
     b.bundle(function (err, out) {
       if (err) { return cb(err); }
-      fs.writeFile(path.join(__dirname, 'out/nedb.js'), out, 'utf8', function (err) {
+      fs.writeFile(path.join(__dirname, 'out/nedb-x.js'), out, 'utf8', function (err) {
         if (err) {
           return cb(err);
         } else {
@@ -86,7 +86,7 @@ child_process.exec('npm install', { cwd: __dirname }, function (err, stdout, std
   , function (out, cb) {
       console.log("Creating the minified version");     
       var compressedCode = uglify.minify(out.toString());      
-      fs.writeFile(path.join(__dirname, 'out/nedb.min.js'), compressedCode.code, 'utf8', cb);
+      fs.writeFile(path.join(__dirname, 'out/nedb-x.min.js'), compressedCode.code, 'utf8', cb);
   }
   ], function (err) {
     if (err) {

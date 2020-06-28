@@ -9,13 +9,16 @@ var extend = function (Datastore) {
 
 
     // A helper for showing trees
-    Datastore.prototype.logTree = function(data){
+    Datastore.prototype.logTree = function(data, identifier, debug){
 
-
+        identifier = identifier || "name";
+      
         for(var x in data){
 
             var pad = "";
-            for(var i = 0; i < data[x].__meta.__level;i++) pad += "   ";
+            if(!data[x].__meta) data[x].__meta = {};
+
+            for(var i = 0; i < data[x].__meta.__level;i++) pad += "  ";
             if(data[x].__meta.__level > 0) pad += "└─ ";    
     
             if(data[x].__meta && data[x].__meta.__criteriaMatch === false){
@@ -23,7 +26,14 @@ var extend = function (Datastore) {
             } else {
                 var color = '';
             }    
-            console.log(color, `${pad}${data[x].name.padStart(pad)} (${data[x].id || ""})`);   
+
+            if(typeof identifier == "function"){
+                var name = identifier.apply(this,[data[x]]);
+            } else {
+                var name = (data[x][identifier]!==undefined) ? data[x][identifier] : `-unknown attribute '${identifier}'-`;
+            }
+
+            console.log(color,`${pad}${name}`);   
         }  
     }
 
