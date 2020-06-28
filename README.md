@@ -6,7 +6,6 @@
 This is an extension set for the excellent library <a href="https://github.com/louischatriot/nedb">**NeDB**</a> from Louis Chatriot.
 Also merged with the promise wrapper <a href="https://github.com/bajankristof/nedb-promises">nedb-promises</a> from bajankristof.
 
-
 We (OneBitAhead) wanted to add a little "sugar" to nedb for usage in rapid prototyping or very small embedded systems.
 The following things are added: 
 
@@ -983,7 +982,7 @@ var data = await db.model("Product")
 
 ## Tree data
 
-...in progress...
+...in progress....
 
 
 ## License 
