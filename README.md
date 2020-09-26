@@ -983,6 +983,14 @@ var data = await db.model("Product")
 
 ...in progress....
 
+## Categorize
+
+... in progress ...
+
+## Search
+
+.... in progress ....
+
 
 ## License 
 
