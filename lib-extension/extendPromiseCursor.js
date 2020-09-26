@@ -23,7 +23,10 @@ var extend = function (Cursor) {
 		this.__original.asTree.apply(this.__original, arguments)
 		return this
 	}
-
+	Cursor.prototype.search = function() {
+		this.__original.search.apply(this.__original, arguments)
+		return this
+	}
 
 }
 
