@@ -1718,7 +1718,8 @@ function hasOwnProperty(obj, prop) {
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"./support/isBuffer":6,"_process":3,"inherits":5}],8:[function(require,module,exports){
 
-var model = require('./../lib/model')
+var model = require('./../lib/model');
+const { concatSeries } = require('async');
 
 var modelSplitCharacter = ":";
 
@@ -1862,7 +1863,7 @@ var extend = function (Cursor) {
         var keys, key;
 
         // Sort object existing?
-        if(this._sortObj[this._modelName]){
+        if(this.sortObj && this._sortObj[this._modelName]){
             sort = this._sortObj[this._modelName];
         } else {
             sort = this._sort;
@@ -1908,7 +1909,6 @@ var extend = function (Cursor) {
     }
 
 
-
     Cursor.prototype._asyncGetCandidates = async function(query){
 
         return new Promise((resolve, reject)=>{
@@ -1921,8 +1921,17 @@ var extend = function (Cursor) {
                 try {
                     for (var i = 0; i < candidates.length; i += 1) {                   
                         if (model.match(candidates[i], query)) res.push(candidates[i]);
-                    }              
-                    resolve(res);
+                    }       
+                    
+                    // SAFE COPY EVERYTHING (sometimes the data is changed on the 
+                    // way out, added meta data, matched criteria, etc.)
+                  
+                    var records = [];
+                    for(var x in res){
+                        records.push({ ...res[x]});
+                    }
+
+                    resolve(records);
                 } catch (err) {
                     return reject(err);
                 }
@@ -1948,52 +1957,137 @@ var extend = function (Cursor) {
     }
 
 
+
+    Cursor.prototype._recursiveSearchModelTypes = function(types, query){
+
+        if(typeof query == "string") {
+            var splitted = query.split(":");
+            if(splitted.length == 2 && types.indexOf(splitted[0])==-1) types.push(splitted[0])
+        }
+        // Query should be an object
+        if(Array.isArray(query)){
+            for(var x in query) this._recursiveSearchModelTypes(types, query[x]);
+        } else {
+            // Run through keys
+            for(var x in query){
+                var value = query[x];
+                if(Array.isArray(value)){
+                    this._recursiveSearchModelTypes(types, value);
+                } else {
+                    var splitted = x.split(":");
+                    if(splitted.length == 2 && types.indexOf(splitted[0])==-1) types.push(splitted[0])
+                                        
+                }
+            }   
+        }
+    }
+    
+    Cursor.prototype._recursiveSplitModelCriteria = function(type, query){
+
+        if(typeof query == "string") return query;
+        // Query should be an object
+        if(Array.isArray(query)){
+            var obj = [];
+            for(var x in query){
+                obj.push(this._recursiveSplitModelCriteria(type, query[x]));
+            }
+        } else {
+            var obj = {};
+            // Run through keys
+            for(var x in query){
+                var value = query[x];
+                if(Array.isArray(value)){
+                    obj[x] = this._recursiveSplitModelCriteria(type, value);
+                } else {
+                    var splitted = x.split(":");
+                    if(splitted.length == 2){
+                        if(splitted[0] == type) {
+                            if(splitted[0] == this._modelName) obj[splitted[1]] = value;
+                            else obj[x] = value;
+                        }
+                    } else {
+                        if(x == "_model" && type !== value)continue;
+                        else obj[x] = value;                   
+                    }
+                }
+            }   
+        }
+        return obj;
+
+
+    }
+
+
+
     Cursor.prototype._prepareQueryDataForJoin = function(query){
 
         // First split the query elements to match the models
-        var queryObj = {};
+        
         var query = query || this._query;
+        
+        // we need to run recursively through this!
+        // to rebuild the correct $and/$or....chained query objects for each model
+        
+        var types = [];
+        this._recursiveSearchModelTypes(types, query);
 
-        for(var x in query){
-            var splitted = x.split(":");
-            if(splitted.length !== 2)continue;
-
-            if(queryObj[splitted[0]]==undefined)queryObj[splitted[0]]={};
-            
-            if(splitted[0] == this._modelName){
-                // add the base model constraints like "attribute": ...
-                queryObj[splitted[0]][splitted[1]] = query[x];
-            }else {
-                // add the join where constraints like "model:attribute": ....
-                queryObj[splitted[0]][x] = query[x];
-            }
-        }
-        // Add the model name if we have a model given....
-        if(this._modelName) {
-            if(queryObj[this._modelName] == undefined) queryObj[this._modelName] = {};
-            queryObj[this._modelName]["_model"] = this._modelName; 
+        // Prepare query object
+        this._queryObj = {};
+        for(var x in types){
+            var criteria = this._recursiveSplitModelCriteria(types[x], query);
+            console.log("Criteria for ", types[x]);           
+            this._queryObj[types[x]] = criteria;
         }
 
-        this._queryObj = queryObj;
-
-        // Split the SORT by model
+                
+        // Prepare sort obj
         this._sortObj = {};
-
-        for(var x in this._sort){
-
-            var splitted = x.split(":");            
-            if(splitted.length !== 2)continue;
-
-            if(this._sortObj[splitted[0]]==undefined)this._sortObj[splitted[0]]={};
-            
-            if(splitted[0] == this._modelName){
-                // add the base model constraints like "attribute": ...
-                this._sortObj[splitted[0]][splitted[1]] = this._sort[x];
-            }else {
-                // add the join where constraints like "model:attribute": ....
-                this._sortObj[splitted[0]][x] = this._sort[x];
-            }
+        for(var x in types){
+            var criteria = this._recursiveSplitModelCriteria(types[x], this._sort);
+            console.log("Sort for ", types[x]);
+            this._sortObj[types[x]] = criteria;
         }
+
+        // for(var x in query){
+        //     var splitted = x.split(":");
+        //     if(splitted.length !== 2)continue;
+
+        //     if(queryObj[splitted[0]]==undefined)queryObj[splitted[0]]={};
+            
+        //     if(splitted[0] == this._modelName){
+        //         // add the base model constraints like "attribute": ...
+        //         queryObj[splitted[0]][splitted[1]] = query[x];
+        //     }else {
+        //         // add the join where constraints like "model:attribute": ....
+        //         queryObj[splitted[0]][x] = query[x];
+        //     }
+        // }
+        // // Add the model name if we have a model given....
+        // if(this._modelName) {
+        //     if(queryObj[this._modelName] == undefined) queryObj[this._modelName] = {};
+        //     queryObj[this._modelName]["_model"] = this._modelName; 
+        // }
+
+        // this._queryObj = queryObj;
+
+        // // Split the SORT by model
+        // this._sortObj = {};
+
+        // for(var x in this._sort){
+
+        //     var splitted = x.split(":");            
+        //     if(splitted.length !== 2)continue;
+
+        //     if(this._sortObj[splitted[0]]==undefined)this._sortObj[splitted[0]]={};
+            
+        //     if(splitted[0] == this._modelName){
+        //         // add the base model constraints like "attribute": ...
+        //         this._sortObj[splitted[0]][splitted[1]] = this._sort[x];
+        //     }else {
+        //         // add the join where constraints like "model:attribute": ....
+        //         this._sortObj[splitted[0]][x] = this._sort[x];
+        //     }
+        // }
 
     }
 
@@ -2008,6 +2102,18 @@ var extend = function (Cursor) {
 
         var data = [];
 
+        if(this._searchCriteria){          
+            if(query && Object.keys(query).length > 0){
+                query = {$and:[query,this._searchCriteria]};
+            } else {
+                query = this._searchCriteria;
+            }
+            //console.log("Go with this: ", query);
+        }
+
+        let queryElements = Object.keys(query).length;
+
+        this._hasQuery = (query && queryElements > 0)? true: false;
 
         if(this._leftJoin) this._prepareQueryDataForJoin(query);
 
@@ -2019,19 +2125,23 @@ var extend = function (Cursor) {
                 this._projection.__meta = 1;                
             }
 
-            query = (this._queryObj) ? this._queryObj[this._modelName] : query;
+            // Prepare children count           
+            this._getChildrenCount();
 
+           
+            query = (this._queryObj) ? this._queryObj[this._modelName] : query;
+            let moreThanModelInQuery = (query._model !== undefined && queryElements > 1)? true: false;
+            
             // Check a given query: if the tree is queried with more than the model
-            // then we maybe need to add some higher level nodes too!
-            var keyCount = Object.keys(query).length;  
-                       
-            if((query._model !== undefined && keyCount > 1) || keyCount > 1){
+            // query the tree with a given query (by search or find...)
+            if(this._hasQuery && (moreThanModelInQuery || this._searchCriteria)){
+             
                 // fetch nodes starting with the query (and then build the tree from ther up to the root)
-                var nodes = await this._asyncGetCandidates(query);
+                var nodes = await this._asyncGetCandidates(query);               
                 var foundIds = nodes.map((node)=> node._id);
-              
-                data = await this._getTreeDataFromNodeUp(query, nodes);
-                
+               
+                data = await this._getTreeDataFromNodeUp(nodes);
+
                 // 1. Mark the matching elements (if the array is given....so a search took place)            
                 for(var x in data){
                     if(!data[x].__meta)data[x].__meta = {};
@@ -2131,12 +2241,36 @@ var extend = function (Cursor) {
         for(var x in childRecords){
             var rec = childRecords[x];
             if(!rec.__meta)rec.__meta = {};
-            rec.__meta.__level = level;       
+            // Add level of the tree
+            rec.__meta.__level = level; 
+
+            // add child count to meta data...if set          
+            if(this._childCount[rec.id]) rec.__meta.__childCount = this._childCount[rec.id];          
+            else  rec.__meta.__childCount = 0;
+            
             data.push(rec);
             data = data.concat(this._addRecursively(rec[this._treeId], byParent, level+1));
         }
         return data;
 
+    }
+
+
+    Cursor.prototype._getChildrenCount = async function(){
+
+        let query = (this._modelName)? {"_model":this._modelName}:{};
+
+        let records = await this._asyncGetCandidates(query);
+        let cc = {};
+
+        for(var x in records){
+            let p = records[x].__parent;
+            p = (p == undefined || p == null || p == "") ? null: p;
+            if(cc[p]==undefined) cc[p] = 1;
+            else cc[p]++;
+        }
+
+        this._childCount = cc;        
     }
 
 
@@ -2160,17 +2294,21 @@ var extend = function (Cursor) {
         }
                
         var records = await this._asyncGetCandidates(query);
-
+         
         // Sort it internally per group
         if(this._sort){
             records = this._sortFunc(records);
         }
 
-
         for(var x in records){
             // Add the record to the result...
             if(!records[x].__meta) records[x].__meta = {};
+            // Add level meta data
             records[x].__meta.__level = level;
+            // add child count to meta data...if set          
+            if(this._childCount[records[x].id]) records[x].__meta.__childCount = this._childCount[records[x].id];          
+            else  records[x].__meta.__childCount = 0;
+
             data.push(records[x]);
             // Check for children....
             if(records[x][this._treeId]){
@@ -2189,7 +2327,7 @@ var extend = function (Cursor) {
      /**
      * Get three data recursively
      */
-    Cursor.prototype._getTreeDataFromNodeUp = async function(query, records, existingIds){
+    Cursor.prototype._getTreeDataFromNodeUp = async function(records, existingIds){
 
         // These records are added ....
         var data = [].concat(records);
@@ -2199,18 +2337,18 @@ var extend = function (Cursor) {
 
         // Get the parent
         for(var x in records){
-            var rec = records[x];
+            var rec = records[x];           
             //Get a parent (if any)
             if(rec[this._treeParentId]){                
                 var parentQuery = {}
-                if(query._model) parentQuery._model = query._model;
+                if(this._modelName) parentQuery._model = this._modelName;
                 parentQuery.id = rec[this._treeParentId];              
                 var parent = await this._asyncGetCandidates(parentQuery);
                 if(parent.length == 1){
                     // check if these parent are already fetched (e.g. from another children node in the path)
                     if(existingIds.indexOf(parent[0]._id)==-1){               
                         existingIds.push(parent[0]._id);
-                        data = data.concat(await this._getTreeDataFromNodeUp(query, parent, existingIds));
+                        data = data.concat(await this._getTreeDataFromNodeUp(parent, existingIds));
                     }
                 }
             }
@@ -2222,10 +2360,20 @@ var extend = function (Cursor) {
     }
 
 
+    /**
+     * Join the data via sql-like left join 
+     * 
+     * 
+     * @param {*} data 
+     * @param {*} joinData 
+     * @param {*} queryObj 
+     */
     Cursor.prototype._leftJoinData = async function(data, joinData, queryObj){
              
-        var to = joinData.to.split(modelSplitCharacter);
-     
+        var to = joinData.to.split(modelSplitCharacter);        
+        // Add data here
+        let result = [];
+
         var keys = [];
         // Array of keys
         for(var x in data){
@@ -2240,17 +2388,27 @@ var extend = function (Cursor) {
         // Data by JOIN id
         var records = {};
         for(var x in joinRecords){
-            records[joinRecords[x][joinData.to]] = joinRecords[x];
-        }
+            if(records[joinRecords[x][joinData.to]]==undefined) records[joinRecords[x][joinData.to]] = [];
+            records[joinRecords[x][joinData.to]].push(joinRecords[x]);
+        } 
 
         // JOIN THE DATA TOGETHER
         for(var x in data){
             var id = data[x][joinData.from];
-            if(records[id]) data[x] = Object.assign({},data[x],records[id]);
+            // Are the corrseponding records?!
+            if(records[id]) {
+                for(var t in records[id]){
+                    result.push(Object.assign({},data[x],records[id][t]));
+                }
+            }
+            // no....just add the record without any extra data
             else {
                 data[x][to[0]]=null;
+                result.push(data[x]);
             }
         }
+
+        data = result;
 
         // Now that the base data is joined with the corresponding data....we can 
         // reduce the complete data by WHERE constraints
@@ -2363,12 +2521,39 @@ var extend = function (Cursor) {
         if(options.openTreeIds) this._openTreeIds = [].concat(options.openTreeIds);
         else this._openTreeIds = [];
         this._openAll = (options.openAll === true) ? true: false;
+        this._withChildrenCount = (options._withChildrenCount === true) ? true: false;
+        this._withChildrenCount = true;
 
         this._treeId = options.treeId || "id";
         this._treeParentId = options.treeParentId || "__parent";
-    
+
         return this;
 
+    }
+
+
+    /**
+     * Search
+     * 
+     */
+    Cursor.prototype.search = function(term, attributes, caseSensitive){
+
+        if(typeof term !== "string")throw new Error("ProvideSearchTerm");
+
+        // if the search is not a RegExp already...create one
+        if(Object.prototype.toString.call(term) !== "[object RegExp]"){
+            var flags = (caseSensitive===true)?"":"i";
+            term = new RegExp(term,flags);        
+        }   
+
+        // combine search with regex over ALL given attributes
+        var criteria = [];
+        for(var x in attributes){
+            criteria.push({[attributes[x]]:term});
+        }
+        
+        this._searchCriteria = {$or:criteria};
+        return this;        
     }
 
 
@@ -2384,7 +2569,7 @@ exports.extend = extend;
 
 
 
-},{"./../lib/model":19}],9:[function(require,module,exports){
+},{"./../lib/model":19,"async":22}],9:[function(require,module,exports){
 
 
 var extend = function (Datastore) {
@@ -2512,7 +2697,10 @@ var extend = function (Cursor) {
 		this.__original.asTree.apply(this.__original, arguments)
 		return this
 	}
-
+	Cursor.prototype.search = function() {
+		this.__original.search.apply(this.__original, arguments)
+		return this
+	}
 
 }
 
@@ -2558,6 +2746,9 @@ var extend = function (Datastore) {
             } else {
                 var name = (data[x][identifier]!==undefined) ? data[x][identifier] : `-unknown attribute '${identifier}'-`;
             }
+
+            // Children
+            if(data[x].__meta.__childCount > 0) name += ` (children: ${data[x].__meta.__childCount})`;
 
             console.log(color,`${pad}${name}`);   
         }  
