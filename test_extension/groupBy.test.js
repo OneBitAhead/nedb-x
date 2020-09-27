@@ -19,14 +19,14 @@ describe('Group By', async function () {
     db = new Datastore();
     
     // Insert group by test data
-    await db.insert({ "name": "a1", "number": 1, "size": 1,    "group": "a", "date": new Date('2020-01-01') })
+    await db.insert({ "name": "a1", "number": 1, "size": 1,    "food": "🥩", "group": "a", "date": new Date('2020-01-01') })
     await db.insert({ "name": "a2", "number": 5, "size": 2,    "group": "a", "date": new Date('2020-02-01') })
-    await db.insert({ "name": "a3", "number": 4, "size": 3,    "group": "a", "date": new Date('2020-03-01') })
+    await db.insert({ "name": "a3", "number": 4, "size": 3,    "food": "🥩", "group": "a", "date": new Date('2020-03-01') })
     await db.insert({ "name": "a4", "number": 50, "size": 5,   "group": "b", "date": new Date('2020-04-01') })
     await db.insert({ "name": "a5", "number": 40, "size": 1,   "group": "a", "date": new Date('2020-01-01') })
-    await db.insert({ "name": "a6", "number": 10, "size": 2,   "group": "c", "date": new Date('2020-01-01') })
-    await db.insert({ "name": "a7", "number": 5432, "size": 4, "group": "b", "date": new Date('2020-02-01') })
-    await db.insert({ "name": "a8", "number": 13.2, "size": 5, "group": "c", "date": new Date('2020-03-01') })
+    await db.insert({ "name": "a6", "number": 10, "size": 2,   "food": "🥩", "group": "c", "date": new Date('2020-01-01') })
+    await db.insert({ "name": "a7", "number": 5432, "size": 4, "food": "🍩", "group": "b", "date": new Date('2020-02-01') })
+    await db.insert({ "name": "a8", "number": 13.2, "size": 5, "food": "☕", "group": "c", "date": new Date('2020-03-01') })
    
   });
 
@@ -84,6 +84,34 @@ describe('Group By', async function () {
 
   });
 
+
+  describe('Group by sparse data', function () {
+
+
+
+    it('Group by sparse food unicode character', async function () {
+
+      var data = await db.find({}).groupBy("food").aggregates({
+        "count": ["count","number"]
+      });
+         
+      var food = {};
+      for(var x in data){
+        food[data[x].food] = data[x];
+      }
+
+      // 1 hot beverage
+      assert.equal(food["☕"].count,1)
+      // 2 bacon
+      assert.equal(food["🥩"].count,3)
+      // 1 doughnot
+      assert.equal(food["🍩"].count,1)
+
+
+
+    });
+
+  });
 
   describe('Group by with aggregates', function () {
 

@@ -1,5 +1,6 @@
 
-var model = require('./../lib/model')
+var model = require('./../lib/model');
+const { concatSeries } = require('async');
 
 var modelSplitCharacter = ":";
 
@@ -143,7 +144,7 @@ var extend = function (Cursor) {
         var keys, key;
 
         // Sort object existing?
-        if(this._sortObj[this._modelName]){
+        if(this.sortObj && this._sortObj[this._modelName]){
             sort = this._sortObj[this._modelName];
         } else {
             sort = this._sort;
@@ -189,7 +190,6 @@ var extend = function (Cursor) {
     }
 
 
-
     Cursor.prototype._asyncGetCandidates = async function(query){
 
         return new Promise((resolve, reject)=>{
@@ -202,8 +202,17 @@ var extend = function (Cursor) {
                 try {
                     for (var i = 0; i < candidates.length; i += 1) {                   
                         if (model.match(candidates[i], query)) res.push(candidates[i]);
-                    }              
-                    resolve(res);
+                    }       
+                    
+                    // SAFE COPY EVERYTHING (sometimes the data is changed on the 
+                    // way out, added meta data, matched criteria, etc.)
+                  
+                    var records = [];
+                    for(var x in res){
+                        records.push({ ...res[x]});
+                    }
+
+                    resolve(records);
                 } catch (err) {
                     return reject(err);
                 }
@@ -374,18 +383,18 @@ var extend = function (Cursor) {
 
         var data = [];
 
-        
-
         if(this._searchCriteria){          
             if(query && Object.keys(query).length > 0){
                 query = {$and:[query,this._searchCriteria]};
             } else {
                 query = this._searchCriteria;
             }
-            console.log("Go with this: ", query);
+            //console.log("Go with this: ", query);
         }
 
-        this._hasQuery = (query && Object.keys(query).length > 0)? true: false;
+        let queryElements = Object.keys(query).length;
+
+        this._hasQuery = (query && queryElements > 0)? true: false;
 
         if(this._leftJoin) this._prepareQueryDataForJoin(query);
 
@@ -397,22 +406,21 @@ var extend = function (Cursor) {
                 this._projection.__meta = 1;                
             }
 
-            console.log(query);
-            console.log(this._queryObj);
+            // Prepare children count           
+            this._getChildrenCount();
 
+           
             query = (this._queryObj) ? this._queryObj[this._modelName] : query;
-
+            let moreThanModelInQuery = (query._model !== undefined && queryElements > 1)? true: false;
+            
             // Check a given query: if the tree is queried with more than the model
             // query the tree with a given query (by search or find...)
-            if(this._hasQuery){
-
-                console.log(query);
-
+            if(this._hasQuery && (moreThanModelInQuery || this._searchCriteria)){
+             
                 // fetch nodes starting with the query (and then build the tree from ther up to the root)
                 var nodes = await this._asyncGetCandidates(query);               
                 var foundIds = nodes.map((node)=> node._id);
-                console.log(foundIds);
-
+               
                 data = await this._getTreeDataFromNodeUp(nodes);
 
                 // 1. Mark the matching elements (if the array is given....so a search took place)            
@@ -514,12 +522,36 @@ var extend = function (Cursor) {
         for(var x in childRecords){
             var rec = childRecords[x];
             if(!rec.__meta)rec.__meta = {};
-            rec.__meta.__level = level;       
+            // Add level of the tree
+            rec.__meta.__level = level; 
+
+            // add child count to meta data...if set          
+            if(this._childCount[rec.id]) rec.__meta.__childCount = this._childCount[rec.id];          
+            else  rec.__meta.__childCount = 0;
+            
             data.push(rec);
             data = data.concat(this._addRecursively(rec[this._treeId], byParent, level+1));
         }
         return data;
 
+    }
+
+
+    Cursor.prototype._getChildrenCount = async function(){
+
+        let query = (this._modelName)? {"_model":this._modelName}:{};
+
+        let records = await this._asyncGetCandidates(query);
+        let cc = {};
+
+        for(var x in records){
+            let p = records[x].__parent;
+            p = (p == undefined || p == null || p == "") ? null: p;
+            if(cc[p]==undefined) cc[p] = 1;
+            else cc[p]++;
+        }
+
+        this._childCount = cc;        
     }
 
 
@@ -543,17 +575,21 @@ var extend = function (Cursor) {
         }
                
         var records = await this._asyncGetCandidates(query);
-
+         
         // Sort it internally per group
         if(this._sort){
             records = this._sortFunc(records);
         }
 
-
         for(var x in records){
             // Add the record to the result...
             if(!records[x].__meta) records[x].__meta = {};
+            // Add level meta data
             records[x].__meta.__level = level;
+            // add child count to meta data...if set          
+            if(this._childCount[records[x].id]) records[x].__meta.__childCount = this._childCount[records[x].id];          
+            else  records[x].__meta.__childCount = 0;
+
             data.push(records[x]);
             // Check for children....
             if(records[x][this._treeId]){
@@ -582,7 +618,7 @@ var extend = function (Cursor) {
 
         // Get the parent
         for(var x in records){
-            var rec = records[x];
+            var rec = records[x];           
             //Get a parent (if any)
             if(rec[this._treeParentId]){                
                 var parentQuery = {}
@@ -766,10 +802,12 @@ var extend = function (Cursor) {
         if(options.openTreeIds) this._openTreeIds = [].concat(options.openTreeIds);
         else this._openTreeIds = [];
         this._openAll = (options.openAll === true) ? true: false;
+        this._withChildrenCount = (options._withChildrenCount === true) ? true: false;
+        this._withChildrenCount = true;
 
         this._treeId = options.treeId || "id";
         this._treeParentId = options.treeParentId || "__parent";
-    
+
         return this;
 
     }

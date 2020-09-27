@@ -159,13 +159,6 @@ describe('Join', async function () {
       assert.equal(data[8]["User:name"], "Peter");
       assert.equal(data[8]["Group:name"], "Admins");
 
-
-
-
-
-
     });
-
-
 
 });

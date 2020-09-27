@@ -12,9 +12,9 @@ The following things are added:
 * [X] <a href="#group-by-statements">Group by with aggregates</a> 
 * [X] <a href="#model-attribute">Substructure database with model attribute</a> 
 * [X] <a href="#left-join">Joining (left join) model data</a>
-* [ ] WIP <a href="#tree-data">Tree data (with open/closed nodes)</a>
-* [ ] WIP: Categorize (build categories and act as tree over the categories)
-* [ ] WIP: Search (Todo)
+* [X] <a href="#tree-data">Tree data (with open/closed nodes)</a>
+* [X] *Implemented but not described yet*: Categorize (build categories and act as tree over the categories)
+* [X] *Implemented but not described yet*: Search 
 
 ## Installation, tests
 Module name on npm and bower is `nedb-x`.
@@ -981,7 +981,139 @@ var data = await db.model("Product")
 
 ## Tree data
 
-...in progress....
+Even more fun is handling tree data (and believe me you will need it in some project sooner or later). For building a tree structure, we add two attributes: *id* and *__parent*.
+The *id* will be used as fake primary key for children to point to, and the *__parent* is used in a children entry to point to the parent record.
+
+So if you want to build a simple tree like this:
+
+* Alpha
+  * Alpha 1.1
+  * Alpha 1.2
+  * Alpha 1.3
+* Beta
+  * Beta 1.1
+    * Beta 1.1.1
+* Gamma 
+
+You just add the following data:
+```javascript
+ await db.model("Tree").insert({ "id": 1, "name": "Alpha" })
+ await db.model("Tree").insert({ "id": 2, "name": "Alpha 1.1", __parent: 1 })
+ await db.model("Tree").insert({ "id": 3, "name": "Alpha 1.2", __parent: 1 })
+ await db.model("Tree").insert({ "id": 4, "name": "Alpha 1.2.1", __parent: 3 })
+ await db.model("Tree").insert({ "id": 5, "name": "Alpha 1.3", __parent: 1 })
+ await db.model("Tree").insert({ "id": 6, "name": "Beta", })
+ await db.model("Tree").insert({ "id": 7, "name": "Beta 1.1", __parent: 6 })
+ await db.model("Tree").insert({ "id": 8, "name": "Beta 1.1.1", __parent: 7 })
+ await db.model("Tree").insert({ "id": 9, "name": "Gamma" })
+```
+You can omit the *id* (as well as *__parent**) in entries, but if you want to point to it via *__parent* attribute from a child record you need an id (so maybe it is best to **always** add an it to the records used for a tree).
+
+After inserting the data, we are going to fetch the data as tree:
+
+```javascript
+var data = await db.model("Tree").find().asTree();
+// the returned data is the first level of the tree:
+//[
+//   {
+//     id: 1,
+//     name: 'Alpha',
+//     _model: 'Tree',
+//     _id: 'Cy9aDnQ2glQTAYt6',
+//     __meta: { __level: 0, __childCount: 3 }
+//   },
+//   {
+//     id: 9,
+//     name: 'Gamma',
+//     _model: 'Tree',
+//     _id: 'jZZFeRYzSp3mV15O',
+//     __meta: { __level: 0, __childCount: 0 }
+//   },
+//   {
+//     id: 6,
+//     name: 'Beta',
+//     _model: 'Tree',
+//     _id: 'oHUYt7p1SUAlim6r',
+//     __meta: { __level: 0, __childCount: 1 }
+//   }
+// ]
+```
+In addition to the stored data there is a *__meta** structure that is representing the level of the tree entry (here level 0 for the root level) and a direct children count (e.g. for UI implementation to know that this node can be opened).
+
+You can add one of these two options to the asTree function:
+ * openAll: boolean
+ * openTreeIds: array with ids to open
+
+Let's try the *openTreeIds* array, and open all the root level nodes (ids: 1,6,9):
+
+```javascript
+var data = await db.model("Tree").find().asTree({openTreeIds:[1,6,9]});
+// the returned data is the first level of the tree:
+// [
+//   {
+//     id: 1,
+//     name: 'Alpha',
+//     _model: 'Tree',
+//     _id: 'DUgl2utJom0b9lL7',
+//     __meta: { __level: 0, __childCount: 3 }
+//   },
+//   {
+//     id: 2,
+//     name: 'Alpha 1.1',
+//     __parent: 1,
+//     _model: 'Tree',
+//     _id: 'ce2mTRkZvASW1FEK',
+//     __meta: { __level: 1, __childCount: 0 }
+//   },
+//   {
+//     id: 5,
+//     name: 'Alpha 1.3',
+//     __parent: 1,
+//     _model: 'Tree',
+//     _id: 'exvZUMVrRFVSWbT5',
+//     __meta: { __level: 1, __childCount: 0 }
+//   },
+//   ...
+// ]
+
+```
+Since the output is more or less a list, we added a neat little helper to display a tree in the console more `tree-like`.
+
+```javascript
+var data = await db.model("Tree").find().asTree({openTreeIds:[1,5,8]});
+// first attribute is the data result, second one is the attribute to display for a tree node
+db.logTree(data,"name");
+// The console output will be:
+// 
+//  Alpha (children: 3)
+//    └─ Alpha 1.1
+//    └─ Alpha 1.3
+//    └─ Alpha 1.2 (children: 2)
+//  Gamma
+//  Beta (children: 1)
+//    └─ Beta 1.1 (children: 1)
+```
+
+So now we want to see the whole tree and use the *openAll* for a request (and add a sort for a nice representation of the content):
+
+```javascript
+var data = await db.model("Tree").find().asTree({openAll: true}).sort({name:1});
+// first attribute is the data result, second one is the attribute to display for a tree node
+db.logTree(data,"name");
+// The console output will be:
+// 
+//  Alpha (children: 3)
+//    └─ Alpha 1.1
+//    └─ Alpha 1.2 (children: 1)
+//      └─ Alpha 1.2.1
+//    └─ Alpha 1.3
+//  Beta (children: 1)
+//    └─ Beta 1.1 (children: 1)
+//      └─ Beta 1.1.1
+//  Gamma
+```
+
+Todo: Some more examples with *limit*, *skip* and *search* or find criteria.
 
 ## Categorize
 

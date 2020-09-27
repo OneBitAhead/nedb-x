@@ -33,6 +33,9 @@ var extend = function (Datastore) {
                 var name = (data[x][identifier]!==undefined) ? data[x][identifier] : `-unknown attribute '${identifier}'-`;
             }
 
+            // Children
+            if(data[x].__meta.__childCount > 0) name += ` (children: ${data[x].__meta.__childCount})`;
+
             console.log(color,`${pad}${name}`);   
         }  
     }
