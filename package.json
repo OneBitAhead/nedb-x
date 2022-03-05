@@ -1,6 +1,6 @@
 {
   "name": "nedb-x",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "author": "Gunnar Thies <gthies@onebitahead.com>",
   "description": "Functional extensions for 'NeDB' from Loius Chatriot",
   "keywords": [
@@ -11,14 +11,13 @@
   "homepage": "https://github.com/OneBitAhead/nedb-x",
   "dependencies": {
     "async": "0.2.10",
-    "binary-search-tree": "0.2.5",
-    "localforage": "^1.3.0",
+    "localforage": "^1.10.0",
     "mkdirp": "~0.5.1",
-    "underscore": "~1.4.4"
+    "underscore": "latest"
   },
   "devDependencies": {
     "chai": "latest",
-    "mocha": "^8.1.3"
+    "mocha": "^9.2.1"
   },
   "scripts": {
     "test": "mocha test",
