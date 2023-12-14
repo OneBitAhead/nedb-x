@@ -10,7 +10,7 @@
   ],
   "homepage": "https://github.com/OneBitAhead/nedb-x",
   "dependencies": {
-    "async": "0.2.10",
+    "async": "2.6.4",
     "localforage": "^1.10.0",
     "mkdirp": "~0.5.1",
     "underscore": "latest"
